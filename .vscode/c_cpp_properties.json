@@ -2,13 +2,11 @@
     "configurations": [
         {
             "name": "Linux",
-            "includePath": [
-                "/usr/local/cuda/include"
-            ],
+            "includePath": [],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "gnu18",
-            "cppStandard": "gnu++14",
+            "cppStandard": "c++11",
             "intelliSenseMode": "gcc-x64"
         }
     ],
