@@ -2,7 +2,9 @@
     "configurations": [
         {
             "name": "Linux",
-            "includePath": [],
+            "includePath": [
+                "/usr/local/cuda-11.1/include"
+            ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "gnu18",

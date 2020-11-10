@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
     cudaMalloc((void**) &cuda_fdata, sizeof(cufftComplex) * total_size));
 
     // 4 blocks each with 32 threads 
-    real2complex<4, 32>
+    real2complex<4, 32>(data_cuda, cuda_idata, )
 
     /* Randomly generate data */
     for (unsigned int i = 0; i < total_size; i++) {
@@ -92,9 +92,9 @@ int main(int argc, char** argv) {
 }
 
 /* convert a standard array of floats into a cufftComplex data type */ 
-__global__ void real2complex(float*f,cufftComplex*fc,int N) {
+__global__ void real2complex(float*f,cufftComplex*fc, int Nx, int Ny, int Nz) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int j=threadIdx.y + blockIdx.y * blockDim.y;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
     int index=j * N + i;
     if(i < N && j < N) {
         fc[index].x = f[index];

@@ -47,6 +47,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "bit": "cpp",
-        "*.cu": "cpp"
+        "*.cu": "cpp",
+        "chrono": "cpp",
+        "*.cuh": "cpp"
     }
 }

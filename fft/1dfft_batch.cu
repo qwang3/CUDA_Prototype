@@ -15,23 +15,27 @@ __global__ void real2complex(double *f, cufftComplex *fc, int N);
 __global__ void complex2real(cufftComplex *fc, double *f, int N);
 
 void usage(int argc, char **argv) {
-    cout << "usage: " << argv[0] << " Nx" << endl;
+    cout << "usage: " << argv[0] << " Nx batch" << endl;
     cout << "Nx (int): number of element in array" << endl;
+    cout << "batch (int): number of arrys to compute" << endl;
+    
 }
 
 int main(int argc, char **argv) {
 
-    if (argc != 2) {
+    if (argc != 3) {
         usage(argc, argv);
         exit(1);
     }
     int Nx = atoi(argv[1]);
+    int batch = atoi(argv[2]);
+
 
     /* randomly generate data */
-    double *idata = new double[Nx];
-    double *odata = new double[Nx];
-    for (int i=0; i<Nx; i++) {
-        idata[i] = rand()/(double)RAND_MAX;
+    double *idata = new double[Nx*batch];
+    double *odata = new double[Nx*batch];
+    for (int i=0; i<Nx*batch; i++) {
+        idata[i] = rand() / (double)RAND_MAX;
     }
 
     /* Allocate memory for data on device, then copy data */
@@ -40,49 +44,56 @@ int main(int argc, char **argv) {
     cufftComplex *idata_cx;
     double *odata_c; 
     cufftComplex *odata_cx;
-    cudaMalloc(&odata_c, sizeof(double) * Nx);
-    cudaMalloc(&idata_c, sizeof(double) * Nx);
-    cudaMalloc(&idata_cx, sizeof(cufftComplex) * Nx);
-    cudaMalloc(&odata_cx, sizeof(cufftComplex) * Nx);
+    cudaMalloc(&odata_c, sizeof(double) * Nx*batch);
+    cudaMalloc(&idata_c, sizeof(double) * Nx*batch);
+    cudaMalloc(&idata_cx, sizeof(cufftComplex) * Nx*batch);
+    cudaMalloc(&odata_cx, sizeof(cufftComplex) * Nx*batch);
 
-    cudaMemcpy(idata_c, idata, sizeof(double) * Nx, cudaMemcpyHostToDevice);
+    cudaMemcpy(idata_c, idata, sizeof(double) * Nx*batch, cudaMemcpyHostToDevice);
+
+    /* FFT Plans */
+    cufftHandle plan;
+    cufftPlan1d(&plan, Nx, CUFFT_C2C, batch);
 
     /* start the time now */
     auto start = chrono::high_resolution_clock::now();
 
     /* Convert data into cufftComplex */
-    /* set 1 block with 256 threads */
+    /* set 1 block with 128 threads */
     cout << "converting real2complex" << endl;
-    real2complex<<<1, 128>>>(idata_c, idata_cx, Nx);
+    real2complex<<<1, 128>>>(idata_c, idata_cx, Nx*batch);
     cudaDeviceSynchronize();
-
-
-    /* FFT Plans */
-    cufftHandle plan;
-    cufftPlan1d(&plan, Nx, CUFFT_C2C, 1);
 
     /* Forward FFT */
     cout << "Forward FFT" << endl;
     cufftExecC2C(plan, idata_cx, odata_cx, CUFFT_FORWARD);
 
+    /* Inverse FFT */
+    cout << "Inverse FFT" << endl;
+    cufftExecC2C(plan, odata_cx, idata_cx, CUFFT_INVERSE);
+
     /* Convert cufft back to double array */
     /* set 1 block with 128 threads */
 
     cout << "converting complex2real" << endl;
-    complex2real<<<1, 128>>>(odata_cx, odata_c, Nx);
+    complex2real<<<1, 128>>>(idata_cx, odata_c, Nx*batch);
     cudaDeviceSynchronize();
 
-    cudaMemcpy(odata, odata_c, sizeof(double)*Nx, cudaMemcpyDeviceToHost);
+    cudaMemcpy(odata, odata_c, sizeof(double)*Nx*batch, cudaMemcpyDeviceToHost);
 
     /* stop the time */
     auto finish = chrono::high_resolution_clock::now();
 
+    for (int i = 0; i < Nx*batch; i++){
+        if (abs(idata[i] - odata[i]) > 1e-6) {
+            cout << "[ERROR] Mismatch at " << i;
+            cout << " idata[" << i << "]= " << idata[i];
+            cout << " odata[" << i << "]= " << odata[i] << endl;
+        }
+    }
+
     auto duration = chrono::duration_cast<chrono::milliseconds>(finish - start);
     cout << "Calculation ran for " << duration.count() << "ms" << endl;
-
-    for (int i = 0; i < Nx; i++){
-        printf("data[%d] = %f \n", i, odata[i]);
-    }
 
     cufftDestroy(plan);
     free(odata);
