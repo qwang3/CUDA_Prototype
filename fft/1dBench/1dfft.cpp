@@ -2,7 +2,7 @@
 
 using namespace std;
 
-chrono::microseconds fft_fftw(const double* idata, double* odata, int Nx) {
+float fft_fftw(const double* idata, double* odata, int Nx) {
 
     /* convert idata to fftw_complex */
     fftw_complex *idata_c, *odata_c;
@@ -22,7 +22,8 @@ chrono::microseconds fft_fftw(const double* idata, double* odata, int Nx) {
     auto start = chrono::high_resolution_clock::now();
     fftw_execute(plan);
     auto finish = chrono::high_resolution_clock::now();
-    chrono::microseconds duration = chrono::duration_cast<chrono::milliseconds>(start - finish);
+    chrono::nanoseconds duration_nano = chrono::duration_cast<chrono::nanoseconds>(finish - start);
+    float duration = duration_nano.count() * 1e-6;
 
 
     /* copy idata content */

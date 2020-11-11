@@ -4,7 +4,11 @@ using namespace std;
 
 /* Calcuate FFT with cuFTT */
 
-chrono::microseconds fft_cuda(const double* idata, double* odata, int Nx) {
+float fft_cuda(const double* idata, double* odata, int Nx) {
+
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
 
 
     /* Allocate memory for data on device, then copy data */
@@ -27,14 +31,17 @@ chrono::microseconds fft_cuda(const double* idata, double* odata, int Nx) {
     cufftPlan1d(&plan, Nx, CUFFT_Z2Z, 1);
 
 
-    auto start = chrono::high_resolution_clock::now();
+    // auto start = chrono::high_resolution_clock::now();
     /* Forward FFT */
+    cudaEventRecord(start);
     cufftExecZ2Z(plan, idata_cx, odata_cx, CUFFT_FORWARD);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    
     /* stop the time */
     /* std::chrono::_V2::system_clock::time_point finish */ 
-    auto finish = chrono::high_resolution_clock::now();
-    chrono::microseconds duration = chrono::duration_cast<chrono::milliseconds>(start - finish);
-
+    float duration = 0; // milliseconds
+    cudaEventElapsedTime(&duration, start, stop);
     /* Convert cufft back to double array */
     /* set 1 block with 8 threads */
 
@@ -72,11 +79,7 @@ __global__ void real2complex(double *f, cufftDoubleComplex *fc, int N) {
     /* Assume 1D grid of 1D blocks */
     int index = blockIdx.x *blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
-    printf("[Thread %d \n", index);
-
-
     while (index < N) {
-        printf("[thread %d] f[%d]=%f\n", index, index, fc[index].x);
         f[index] = fc[index].x;
         index += stride;
     }
