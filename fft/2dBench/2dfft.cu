@@ -1,10 +1,10 @@
-#include "1dfft.hpp"
+#include "2dfft.hpp"
 
 using namespace std;
 
 /* Calcuate FFT with cuFTT */
 
-float fft_cuda(const double* idata, double* odata, int Nx) {
+float fft_cuda(double** idata, double** odata, int Nx, int Ny) {
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -12,13 +12,16 @@ float fft_cuda(const double* idata, double* odata, int Nx) {
 
     /* Allocate memory for data on device, then copy data */
     double *idata_c, *odata_c;
-    cufftDoubleComplex *idata_cx, *odata_cx;
-    cudaMalloc(&odata_c, sizeof(double) * Nx);
-    cudaMalloc(&idata_c, sizeof(double) * Nx);
-    cudaMalloc(&idata_cx, sizeof(cufftDoubleComplex) * Nx);
-    cudaMalloc(&odata_cx, sizeof(cufftDoubleComplex) * Nx);
+    cudaMalloc(&odata_c, sizeof(double) * Nx * Ny);
+    cudaMalloc(&idata_c, sizeof(double) * Nx * Ny);
 
-    cudaMemcpy(idata_c, idata, sizeof(double) * Nx, cudaMemcpyHostToDevice);
+    cufftDoubleComplex *idata_cx, *odata_cx;
+    cudaMalloc(&idata_cx, sizeof(cufftDoubleComplex) * Nx * Ny);
+    cudaMalloc(&odata_cx, sizeof(cufftDoubleComplex) * Nx * Ny);
+
+    for (int i=0; i<Nx; i++) {
+        cudaMemcpy(&idata_c[i*Ny], &idata[i][0], sizeof(double)*Ny, cudaMemcpyHostToDevice);
+    }
 
     /* Convert data into cufftDoubleComplex */
     /* set 1 block with 256 threads */
@@ -27,7 +30,7 @@ float fft_cuda(const double* idata, double* odata, int Nx) {
 
     /* FFT Plans */
     cufftHandle plan;
-    cufftPlan1d(&plan, Nx, CUFFT_Z2Z, 1);
+    cufftPlan2d(&plan, Nx, Ny, CUFFT_Z2Z);
 
 
     // auto start = chrono::high_resolution_clock::now();
@@ -47,12 +50,17 @@ float fft_cuda(const double* idata, double* odata, int Nx) {
     complex2real<<<1, 8>>>(odata_cx, odata_c, Nx);
     cudaDeviceSynchronize();
 
+    for (int i=0; i<Nx; i++) {
+        cudaMemcpy(&odata[i][0], &odata_c[i*Ny], sizeof(double)*Ny, cudaMemcpyHostToDevice);
+    }
+
     cudaMemcpy(odata, odata_c, sizeof(double)*Nx, cudaMemcpyDeviceToHost);
 
     cufftDestroy(plan);
     cudaFree(idata_c);
-    cudaFree(idata_cx);
     cudaFree(odata_c);
+    cudaFree(idata_cx);
+    cudaFree(odata_cx);
 
     return duration;
 }
