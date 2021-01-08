@@ -2,8 +2,8 @@
 
 #include "main.hpp"
 
-double convolve_fftw(float input_array_1[], float input_array_2[], 
-            float output_array[], int N_max, int batch) {
+double convolve_fftw(double input_array_1[], double input_array_2[], 
+            double output_array[], int N_max, int batch) {
 
     fftw_complex *in_one, *in_two, *tf_one, *tf_two, *out;
     fftw_plan forward_fft1, forward_fft2, inverse_fft;

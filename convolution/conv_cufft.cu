@@ -3,7 +3,7 @@
 #include "main.hpp"
 #include "gpuErrchk.hpp"
 
-__global__ void dot(cufftComplex in_one[], cufftComplex in_two[], cufftComplex out[], int N) {
+__global__ void dot(cufftDoubleComplex in_one[], cufftDoubleComplex in_two[], cufftDoubleComplex out[], int N) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     while (idx < N) {
         // some attempt at ILP ...
@@ -21,9 +21,9 @@ __global__ void dot(cufftComplex in_one[], cufftComplex in_two[], cufftComplex o
     }
 }
 
-double convolve_cufft(float input_array_1[], float input_array_2[], 
-            float output_array[], int N_max, int batch) {
-    cufftComplex *in_one, *in_two, *tf_one, *tf_two, *out;
+double convolve_cufft(double input_array_1[], double input_array_2[], 
+            double output_array[], int N_max, int batch) {
+    cufftDoubleComplex *in_one, *in_two, *tf_one, *tf_two, *out;
     cufftHandle fft_plan;
     int dim[3] = {N_max, N_max, N_max};
     int N_total = pow(N_max, 3);
@@ -35,11 +35,11 @@ double convolve_cufft(float input_array_1[], float input_array_2[],
     gpuErrchk(cudaEventCreate(&stop));
     
     /* allocate memory */
-    gpuErrchk(cudaMalloc(&in_one, sizeof(cufftComplex)*N_total*batch));
-    gpuErrchk(cudaMalloc(&in_two, sizeof(cufftComplex)*N_total*batch));
-    gpuErrchk(cudaMalloc(&tf_one, sizeof(cufftComplex)*N_total*batch));
-    gpuErrchk(cudaMalloc(&tf_two, sizeof(cufftComplex)*N_total*batch));
-    gpuErrchk(cudaMalloc(&out, sizeof(cufftComplex)*N_total*batch));
+    gpuErrchk(cudaMalloc(&in_one, sizeof(cufftDoubleComplex)*N_total*batch));
+    gpuErrchk(cudaMalloc(&in_two, sizeof(cufftDoubleComplex)*N_total*batch));
+    gpuErrchk(cudaMalloc(&tf_one, sizeof(cufftDoubleComplex)*N_total*batch));
+    gpuErrchk(cudaMalloc(&tf_two, sizeof(cufftDoubleComplex)*N_total*batch));
+    gpuErrchk(cudaMalloc(&out, sizeof(cufftDoubleComplex)*N_total*batch));
 
     /* copy over input */
     printf("[CUFFT] copying input \n");
@@ -57,13 +57,13 @@ double convolve_cufft(float input_array_1[], float input_array_2[],
     cudaEventRecord(start);
 
     /* F = conv(f) */
-    cufftExecC2C(fft_plan, in_one, tf_one, CUFFT_FORWARD);
+    cufftExecZ2Z(fft_plan, in_one, tf_one, CUFFT_FORWARD);
     /* G = conv(g) */
-    cufftExecC2C(fft_plan, in_two, tf_two, CUFFT_FORWARD);
+    cufftExecZ2Z(fft_plan, in_two, tf_two, CUFFT_FORWARD);
     /* F dot G */
     dot<<<n_block, n_thread>>>(tf_one, tf_two, out, N_total*batch);
     /* conv^-1(F dot G) */
-    cufftExecC2C(fft_plan, out, out, CUFFT_INVERSE);
+    cufftExecZ2Z(fft_plan, out, out, CUFFT_INVERSE);
 
     cudaEventRecord(stop);
     printf("[CUFFT] compute finished, timer off... \n");
