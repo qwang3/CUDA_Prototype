@@ -25,13 +25,19 @@ float fft_cuda(double** idata, double** odata, int Nx, int Ny) {
 
     /* Convert data into cufftDoubleComplex */
     /* set 1 block with 256 threads */
-    real2complex<<<1, 8>>>(idata_c, idata_cx, Nx);
+    real2complex<<<1, 8>>>(idata_c, idata_cx, Nx*Ny);
     cudaDeviceSynchronize();
-
     /* FFT Plans */
     cufftHandle plan;
     cufftPlan2d(&plan, Nx, Ny, CUFFT_Z2Z);
 
+    // for (int i=0; i<Nx; i++) {
+    //     for (int j=0; j<Ny; j++) {
+    //         printf("%d", i*Nx+j);
+    //         printf("%f", idata_c[i*Nx+j]);
+    //     }
+    //     printf("\n");
+    // }
 
     // auto start = chrono::high_resolution_clock::now();
     /* Forward FFT */
@@ -47,14 +53,12 @@ float fft_cuda(double** idata, double** odata, int Nx, int Ny) {
     /* Convert cufft back to double array */
     /* set 1 block with 8 threads */
 
-    complex2real<<<1, 8>>>(odata_cx, odata_c, Nx);
+    complex2real<<<1, 8>>>(odata_cx, odata_c, Nx*Ny);
     cudaDeviceSynchronize();
 
     for (int i=0; i<Nx; i++) {
-        cudaMemcpy(&odata[i][0], &odata_c[i*Ny], sizeof(double)*Ny, cudaMemcpyHostToDevice);
+        cudaMemcpy(&odata[i][0], &odata_c[i*Ny], sizeof(double)*Ny, cudaMemcpyDeviceToHost);
     }
-
-    cudaMemcpy(odata, odata_c, sizeof(double)*Nx, cudaMemcpyDeviceToHost);
 
     cufftDestroy(plan);
     cudaFree(idata_c);
@@ -89,5 +93,6 @@ __global__ void real2complex(double *f, cufftDoubleComplex *fc, int N) {
     while (index < N) {
         f[index] = fc[index].x;
         index += stride;
+        
     }
 }

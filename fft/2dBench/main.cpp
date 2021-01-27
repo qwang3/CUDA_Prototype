@@ -25,18 +25,18 @@ void benchmark(int Nx, int Ny, float* time) {
 
     /* start the time for GPU */
     time[1] = fft_cuda(idata, odata_gpu, Nx, Ny);
-    // time[1]=0;
 
     /* NOTE: For some reason cuda suffer from precision issues. The higher the number, the 
      * less precise it is*/
     for (int i=0; i<Nx; i++) {
         for (int j=0; j<Ny; j++) {
-        // if (abs(odata_cpu[i][j] - odata_gpu[i][j]) > 1e-3) {
-        //     fprintf(stderr, "[ERROR] data at %d dissagree. fftw = %f, cuda = %f \n", 
-        //         i, odata_cpu[i], odata_gpu[i]);
-            printf(" %f ", odata_gpu[i][j]);
+            if (abs(odata_cpu[i][j] - odata_gpu[i][j]) > 1e-3) {
+                fprintf(stderr, "[ERROR] data at [%d][%d]dissagree. fftw = %f, cuda = %f \n", 
+                    i,j, odata_cpu[i][j], odata_gpu[i][j]);
+            }
+            // printf(" %f ", odata_gpu[i][j]);
         }
-        printf("\n");
+        // printf("\n");
     }
     for (int i = 0; i<Nx; i++) {
         delete[] idata[i];
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
     res_file.open("result.csv");
     res_file << "Size, CPU_time, GPU_time,\n";
     for (int i = 0; i < Nruns; i++) {
-        res_file << pow(10, i) << "," << times[i][0] << "," << times[i][1] << ",\n";
+        res_file << i << "," << times[i][0] << "," << times[i][1] << ",\n";
     }
     res_file.close();
     

@@ -49,8 +49,8 @@ int main(int argc, char **argv) {
     float cufft_time_2 = convolve_cufft_1(input_array_1, input_array_2, output_cufft, N_max, N_batch);
     // float cufft_time_3 = convolve_cufft_3(input_array_1, input_array_2, output_cufft, N_max, N_batch);
 
-    //verify results
-    // #pragma omp parallel for
+        //verify results
+    #pragma omp parallel for
     for (int i = 0; i<N_total; i++) {
         float err_x = fabs(output_cufft[i].x - output_fftw[i].x);
         float err_y = fabs(output_cufft[i].y - output_fftw[i].y);
