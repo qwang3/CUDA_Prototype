@@ -33,3 +33,6 @@
 
 .vscode
 build
+simpleCUFFT
+common
+nvvp_results

@@ -1,9 +1,21 @@
 #include <omp.h>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
+#include <cuda_runtime.h>
 
-double convolve_fftw(float input_array_1[], float input_array_2[], 
-            float output_array[], int N_max, int batch);
+typedef float2 Complex;
 
-double convolve_cufft(float input_array_1[], float input_array_2[], 
-            float output_array[], int N_max, int batch);
+void map_memory(float2 array[], int size);
+
+float convolve_fftw(Complex input_array_1[], Complex input_array_2[], 
+            Complex output_array[], int N_max, int batch);
+
+float convolve_cufft_1(Complex input_array_1[], Complex input_array_2[], 
+            Complex output_array[], int N_max, int batch);
+
+float convolve_cufft_2(Complex input_array_1[], Complex input_array_2[], 
+            Complex output_array[], int N_max, int batch);
+
+float convolve_cufft_3(Complex input_array_1[], Complex input_array_2[], 
+            Complex output_array[], int N_max, int batch);
